@@ -38,8 +38,15 @@ class SlaveSocketUtils:
     def isStoreRequest(self, socket_dict):
         return self.receiver in socket_dict
 
-    def readMessage(self):
-        return self.receiver.recv_multipart()
+    def readBroadcastMessage(self):
+        return self.subscriber.recv()
+
+    def sendChunkToMaster(self, filename, raw_bytes):
+        self.sender.send_multipart([
+                    bytes(filename, 'utf-8'),
+                    raw_bytes
+                ])
+
 
     def sendResponse(self, filename):
         self.sender.send_string(filename) 

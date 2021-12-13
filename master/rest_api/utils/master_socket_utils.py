@@ -28,9 +28,18 @@ class MasterSocketUtils():
             file_chunk
         ])
 
+    def broadcastChunkRequest(self, model):
+        self.broadcast_socket.send(
+            model.SerializeToString()
+        )
 
-    def recieveAck(self):
+
+    def receiveAck(self):
         return self.pull_socket.recv_string()
+
+
+    def receiveChunk(self):
+        return self.pull_socket.recv_multipart()
 
 
 

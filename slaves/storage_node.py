@@ -49,14 +49,13 @@ while True:
     try:
     # Poll all sockets
         socks = slave_socket_utils.awaitUpdateFromMaster()
-        print("Message rechied")
     except KeyboardInterrupt:
         break
     # At this point one or multiple sockets have received a message
     if slave_socket_utils.isStoreRequest(socks):
-        print("")
+        print("StoreRequest rechieved")
        # Incoming message on the 'receiver' socket where we get tasks to store a chunk
-        msg = slave_socket_utils.readMessage()
+        msg = slave_socket_utils.readBroadcastMessage()
         # Parse the Protobuf message from the first frame
         model = pb_models.file()
         model.ParseFromString(msg[0])
@@ -65,30 +64,27 @@ while True:
 
         # Store the chunk with the given filename
         chunk_local_path = data_folder+'/'+model.filename
-
         write_file(data, chunk_local_path)
 
-        # Send response (just the file name)
+        # Send back stored filename to master
         slave_socket_utils.sendResponse(model.filename)
-    #if subscriber in socks:
-    #    # Incoming message on the 'subscriber' socket where we get retrieve requests
-    #    msg = subscriber.recv()
-    #    # Parse the Protobuf message from the first frame
-    #    task = messages_pb2.getdata_request()
-    #    task.ParseFromString(msg)
-    #    filename = task.filename
-    #    print(f"Data chunk request: {filename}")
-    #    # Try to load the requested file from the local file system,
-    #    # send response only if found
-    #    try:
-    #        with open(data_folder+'/'+filename, "rb") as in_file:
-    #            print(f"Found chunk {filename}, sending it back")
-    #            sender.send_multipart([
-    #                bytes(filename, 'utf-8'),
-    #                in_file.read()
-    #            ])
-    #    except FileNotFoundError:
-    #    # The chunk is not stored by this node
-    #        pass
-#
 
+    if slave_socket_utils.isBroadcastRequest(socks):
+        print("Broadcast rechieved")
+        # Incoming message on the 'subscriber' socket where we get retrieve requests
+        msg = slave_socket_utils.readBroadcastMessage()
+        # Parse the Protobuf message from the first frame
+        model = pb_models.file()
+        model.ParseFromString(msg)
+        filename = model.filename
+        print(f"chunk name request: {model.filename}")
+
+        # Try to load the requested file from the local file system,
+        # send response only if found
+        try:
+            with open(data_folder+'/'+filename, "rb") as in_file:
+                print(f"Found chunk {filename}, sending it back")
+                slave_socket_utils.sendChunkToMaster(filename, in_file.read() )
+        except FileNotFoundError:
+        # The chunk is not stored by this node
+            pass

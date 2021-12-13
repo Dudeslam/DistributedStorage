@@ -77,7 +77,7 @@ def add_files():
         
     # Wait until we receive 3 responses from the workers
     for _ in range(number_of_worker_nodes):
-        ack = socketUtils.recieveAck()
+        ack = socketUtils.receiveAck()
         print(f"Received: {ack}")
 
     id = storageUtils.insert_file_meta_data(filename, size, content_type, created, file_data_1_names, file_data_2_names)
@@ -87,19 +87,53 @@ def add_files():
 
 
 
-@app.route('/files/<int:file_id>', methods=['GET'])
+@app.route(f"/{base_path}/files/<int:file_id>",  methods=['GET'])
 def download_file(file_id):
-    db = storageUtils.get_db()
-    cursor = db.execute("SELECT * FROM `file` WHERE `id`=?", [file_id])
-    if not cursor:
-        return make_response({"message": "Error connecting to the database"}, 500)
-    f = cursor.fetchone()
+    fetched_metadata = storageUtils.get_metadata(file_id)
+    if fetched_metadata == None: 
+        return make_response({"message": "File not found"}, 404)
+       
     # Convert to a Python dictionary
-    f = dict(f)
-    print("File requested: {}".format(f))
-    # Return the binary file contents with the proper Content-Type header.
-    return send_file(f"../storage/{f['blob_name']}", mimetype=f['content_type'])
+    file_as_dict = dict(fetched_metadata)
+    # Select one chunk of each half
+    part1_filenames = file_as_dict['part1_filenames'].split(',')
+    part2_filenames = file_as_dict['part2_filenames'].split(',')
+    part1_filename = part1_filenames[random.randint(0, len(part1_filenames)-1)]
+    part2_filename = part2_filenames[random.randint(0, len(part2_filenames)-1)]
+    
+    # Broast cast chunk request to all workers (part1)
+    model1 = pb_models.file()
+    model1.filename = part1_filename
+    socketUtils.broadcastChunkRequest(model1)
 
+    # Broast cast chunk request to all workers (part2)
+    model2 = pb_models.file()
+    model2.filename = part2_filename
+    socketUtils.broadcastChunkRequest(model2)
+
+    # Receive both chunks and insert them to
+    file_data_parts = [None, None]
+    for _ in range(2):
+        result = socketUtils.receiveChunk()
+        # First frame: file name (string)
+        filename_received = result[0].decode('utf-8')
+        # Second frame: data
+        chunk_data = result[1]
+        print(f"Received {filename_received}")
+
+        # Setting frames in correct order
+        if filename_received == part1_filename:
+            # The first part was received
+            file_data_parts[0] = chunk_data
+        else:
+            # The second part was received
+            file_data_parts[1] = chunk_data
+    
+    print("Both chunks received successfully")
+    # Combine the parts and serve the file
+    file_data = file_data_parts[0] + file_data_parts[1]
+
+    return send_file(io.BytesIO(file_data), mimetype=file_as_dict['content_type'])
 
 
 app.run(host="localhost", port=9000)

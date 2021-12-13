@@ -35,3 +35,13 @@ class StorageUtils:
         db.commit()    
 
         return cursor.lastrowid    
+
+    def get_metadata(self, file_id):
+        db = self.get_db()
+        cursor = db.execute("SELECT * FROM `metadata` WHERE `id`=?", [file_id])
+
+        if not cursor:     
+            return None
+        else:
+            return cursor.fetchone()
+
