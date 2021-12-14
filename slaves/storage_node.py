@@ -40,9 +40,12 @@ def write_file(data, filename=None):
     
     return filename
 
+masterip = ""
+with open("../config.txt") as f:
+    masterip = f.readline().split('=')[1].strip()
 
-
-slave_socket_utils = SlaveSocketUtils("localhost")
+print(f"connectiong to master ip : {masterip} ")
+slave_socket_utils = SlaveSocketUtils(masterip)
 
 
 while True:
