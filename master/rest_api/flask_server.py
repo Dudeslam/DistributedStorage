@@ -136,6 +136,6 @@ def download_file(file_id):
     return send_file(io.BytesIO(file_data), mimetype=file_as_dict['content_type'])
 
 
-app.run(host="localhost", port=9000)
+app.run(host="0.0.0.0", port=9000)
 app.teardown_appcontext(storageUtils.close_db)
 
