@@ -67,8 +67,6 @@ while True:
         chunk_local_path = data_folder+'/'+model.filename
         write_file(data, chunk_local_path)
 
-        # Send back stored filename to master
-        slave_socket_utils.sendResponse(model.filename)
 
     if slave_socket_utils.isBroadcastRequest(socks):
         print("Broadcast rechieved")

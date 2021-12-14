@@ -74,11 +74,6 @@ def add_files():
         pb_file = pb_models.file()
         pb_file.filename = name
         socketUtils.pushChunkToWorker(pb_file, file_data_2)
-        
-    # Wait until we receive 3 responses from the workers
-    for _ in range(number_of_worker_nodes):
-        ack = socketUtils.receiveAck()
-        print(f"Received: {ack}")
 
     id = storageUtils.insert_file_meta_data(filename, size, content_type, created, file_data_1_names, file_data_2_names)
 
