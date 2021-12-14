@@ -41,6 +41,10 @@ class SlaveSocketUtils:
     def readBroadcastMessage(self):
         return self.subscriber.recv()
 
+    def readStoreRequest(self):
+        return self.receiver.recv_multipart()
+
+
     def sendChunkToMaster(self, filename, raw_bytes):
         self.sender.send_multipart([
                     bytes(filename, 'utf-8'),

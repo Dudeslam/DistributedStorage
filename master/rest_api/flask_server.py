@@ -104,11 +104,13 @@ def download_file(file_id):
     # Broast cast chunk request to all workers (part1)
     model1 = pb_models.file()
     model1.filename = part1_filename
+    print(f"broadcast request file : {model1.filename} ")
     socketUtils.broadcastChunkRequest(model1)
 
     # Broast cast chunk request to all workers (part2)
     model2 = pb_models.file()
     model2.filename = part2_filename
+    print(f"broadcast request file : {model2.filename} ")
     socketUtils.broadcastChunkRequest(model2)
 
     # Receive both chunks and insert them to

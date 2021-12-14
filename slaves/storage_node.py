@@ -55,13 +55,14 @@ while True:
     if slave_socket_utils.isStoreRequest(socks):
         print("StoreRequest rechieved")
        # Incoming message on the 'receiver' socket where we get tasks to store a chunk
-        msg = slave_socket_utils.readBroadcastMessage()
+        msg = slave_socket_utils.readStoreRequest()
+        
         # Parse the Protobuf message from the first frame
         model = pb_models.file()
         model.ParseFromString(msg[0])
         # The data is the second frame
         data = msg[1]
-
+        print(f"Chunk with name {model.filename} rechieved")
         # Store the chunk with the given filename
         chunk_local_path = data_folder+'/'+model.filename
         write_file(data, chunk_local_path)
