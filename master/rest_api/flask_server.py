@@ -1,5 +1,5 @@
 import sys
-sys.path.insert(1,"../../")
+sys.path.insert(1, "../../")
 import models.messages_pb2 as pb_models
 from flask import Flask
 from flask import Flask, make_response, request, send_file
@@ -46,8 +46,8 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
 
-@app.route(f"/{base_path}/files", methods=['POST'])
-def add_files():
+@app.route(f"/{base_path}/files/<int:k_replica>", methods=['POST'])
+def add_files(k_replica):
     payload = request.get_json()
     filename = payload.get('filename')
     content_type = payload.get('content_type')
@@ -55,32 +55,51 @@ def add_files():
     size = len(file_data)
     created = date.today()
 
+
+
     # RAID 1: cut the file in half and store both halves 2x
     file_data_1 = file_data[:math.ceil(size/2.0)]
     file_data_2 = file_data[math.ceil(size/2.0):]
     # Generate two random chunk names for each half
-    file_data_1_names = [id_generator(8), id_generator(8)]
-    file_data_2_names = [id_generator(8), id_generator(8)]
-    print(f"Filenames for part 1: {file_data_1_names}")
-    print(f"Filenames for part 2: {file_data_2_names}")
 
-    #Send 2 'store data' Protobuf requests with the first half and chunk names
-    for name in file_data_1_names:
-        pb_file = pb_models.file()
-        pb_file.filename = name
-        socketUtils.pushChunkToWorker(pb_file, file_data_1)
-    # Send 2 'store data' Protobuf requests with the second half and chunk names
-    for name in file_data_2_names:
-        pb_file = pb_models.file()
-        pb_file.filename = name
-        socketUtils.pushChunkToWorker(pb_file, file_data_2)
+    split = 2
+    k_replica_names = []
+    for i in range(split):
+        for _ in range(k_replica):
+            k_replica_names.append((i, id_generator(8)))   # (0, "ASASHDJASD")
+   
+    print(f"Genreated block names : {k_replica_names}")
 
-    id = storageUtils.insert_file_meta_data(filename, size, content_type, created, file_data_1_names, file_data_2_names)
+
+    # Example: (0, "ASASHDJASD"), (0, "ASASHDJASD"), (0, "ASASHDJASD"), (1, "ASASHDJASD"), (1, "ASASHDJASD")
+    for block in k_replica_names:
+        if block[0] == 0:
+            pb_file = pb_models.file()
+            pb_file.filename = block[1]
+            socketUtils.pushChunkToWorker(pb_file, file_data_1)
+        else:
+            pb_file = pb_models.file()
+            pb_file.filename = block[1]
+            socketUtils.pushChunkToWorker(pb_file, file_data_2)    
+        
+    blocknammes_1 = [block[1] for block in k_replica_names if block[0] == 0]
+    print(f"blocknammes_1 {blocknammes_1}")
+    blocknammes_2 = [block[1] for block in k_replica_names if block[0] == 1]
+    print(f"blocknammes_2 {blocknammes_2}")
+    id = storageUtils.insert_file_meta_data(filename, size, content_type, created, blocknammes_1, blocknammes_2)
 
     # Return the ID of the new file record with HTTP 201 (Created) status code
     return make_response({"id":id}, 201)
 
 
+def findDistinctBlock(part_filenames, ack_meta_data):
+    for part_file in part_filenames:
+        for node_meta_data in ack_meta_data:
+            for filename_meta in node_meta_data[1]:
+                if part_file == filename_meta:
+                    return (part_file, node_meta_data[0])
+
+    
 
 @app.route(f"/{base_path}/files/<int:file_id>",  methods=['GET'])
 def download_file(file_id):
@@ -93,43 +112,61 @@ def download_file(file_id):
     # Select one chunk of each half
     part1_filenames = file_as_dict['part1_filenames'].split(',')
     part2_filenames = file_as_dict['part2_filenames'].split(',')
-    part1_filename = part1_filenames[random.randint(0, len(part1_filenames)-1)]
-    part2_filename = part2_filenames[random.randint(0, len(part2_filenames)-1)]
-    
+
+    all_filenames = part1_filenames + part2_filenames
     # Broast cast chunk request to all workers (part1)
-    model1 = pb_models.file()
-    model1.filename = part1_filename
-    print(f"broadcast request file : {model1.filename} ")
-    socketUtils.broadcastChunkRequest(model1)
+    all_files_model = pb_models.broadcast_request_file()
+    all_files_model.filenames.extend(all_filenames)
+    all_files_model.type = "broadcast_request_file"
 
-    # Broast cast chunk request to all workers (part2)
-    model2 = pb_models.file()
-    model2.filename = part2_filename
-    print(f"broadcast request file : {model2.filename} ")
-    socketUtils.broadcastChunkRequest(model2)
+    print(all_files_model.SerializeToString())   
+    print(f"broadcasting files :  {all_files_model.filenames}")
+    socketUtils.broadcastChunkRequest(all_files_model)
 
-    # Receive both chunks and insert them to
+    ack_meta_data = []
+    for _ in range(number_of_worker_nodes):
+        msg = socketUtils.receiveAcknowlegde()
+        ack_model = pb_models.broadcast_response_node()
+        ack_model.ParseFromString(msg)
+        if(ack_model.hasFile):
+            ack_meta_data.append((ack_model.node, ack_model.filenames))
+
+
+    print(f"ach meta data {ack_meta_data}")
+
+    broadcast_request_file = pb_models.broadcast_request_specefic()
+
+    files1, node1 = findDistinctBlock(part1_filenames, ack_meta_data)
+    files2, node2 = findDistinctBlock(part2_filenames, ack_meta_data)
+
+    print(f"nodes = {node1} , {node2}")
+    print(f"files = {files1} , {files2}")
+
+    broadcast_request_file.nodes.extend([node1, node2])
+    broadcast_request_file.filenames.extend([files1, files2])
+    broadcast_request_file.type = "broadcast_request_specefic"
+
+    socketUtils.broadcastSpecificRequest(broadcast_request_file)              
+   
     file_data_parts = [None, None]
-    for _ in range(2):
+    for _ in range(len(broadcast_request_file.filenames)):
         result = socketUtils.receiveChunk()
         # First frame: file name (string)
         filename_received = result[0].decode('utf-8')
+        print(f"File receivd {filename_received}")
         # Second frame: data
         chunk_data = result[1]
-        print(f"Received {filename_received}")
-
-        # Setting frames in correct order
-        if filename_received == part1_filename:
+            # Setting frames in correct order
+        if filename_received in part1_filenames:
             # The first part was received
             file_data_parts[0] = chunk_data
-        else:
+        elif filename_received in part2_filenames:
             # The second part was received
             file_data_parts[1] = chunk_data
-    
+
     print("Both chunks received successfully")
     # Combine the parts and serve the file
     file_data = file_data_parts[0] + file_data_parts[1]
-
     return send_file(io.BytesIO(file_data), mimetype=file_as_dict['content_type'])
 
 

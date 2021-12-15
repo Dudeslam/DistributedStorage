@@ -9,3 +9,27 @@ message file
     uint64 created = 5;
 }
 
+
+message broadcast_request_file
+{
+    repeated string filenames = 1;
+    string type = 2;
+}
+
+
+message broadcast_response_node
+{
+    string node = 1;
+    repeated string filenames = 2;
+    bool hasFile = 3;
+    string type = 4;
+}
+
+message broadcast_request_specefic
+{
+    repeated string nodes = 1;
+    string type = 2;
+    repeated string filenames = 4;
+}
+
+

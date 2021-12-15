@@ -50,7 +50,9 @@ class SlaveSocketUtils:
                     bytes(filename, 'utf-8'),
                     raw_bytes
                 ])
-
+    
+    def acknowledgeToMaster(self, model):
+        self.sender.send(model.SerializeToString())
 
     def sendResponse(self, filename):
         self.sender.send_string(filename) 

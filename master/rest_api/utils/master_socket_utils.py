@@ -29,10 +29,10 @@ class MasterSocketUtils():
         ])
 
     def broadcastChunkRequest(self, model):
-        self.broadcast_socket.send(
-            model.SerializeToString()
-        )
-
+        self.broadcast_socket.send(model.SerializeToString())
+    
+    def broadcastSpecificRequest(self, model):
+        self.broadcast_socket.send(model.SerializeToString())
 
     def receiveAck(self):
         return self.pull_socket.recv_string()
@@ -40,6 +40,10 @@ class MasterSocketUtils():
 
     def receiveChunk(self):
         return self.pull_socket.recv_multipart()
+
+
+    def receiveAcknowlegde(self):
+        return self.pull_socket.recv()
 
 
 
