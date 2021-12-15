@@ -10,13 +10,10 @@ import base64
 import random
 import string
 from datetime import date
-import zmq # For ZMQ
-import time # For waiting a second for ZMQ connections
 import math # For cutting the file in half
 import random # For selecting a random half when requesting chunks
 import io # For sending binary data in a HTTP response
 from base64 import b64decode
-
 
 
 
@@ -45,6 +42,21 @@ def write_file(encoded_file):
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
+def get_random_node_list(number_of_nodes):
+    node_list = []
+    for i in range(number_of_worker_nodes):
+        randon_num = random.randint(1,number_of_nodes) 
+        node_list.append(f"node{randon_num}")
+
+    return node_list
+
+
+def get_node_list(number_of_nodes):
+    node_list = []
+    for i in range(1, number_of_nodes+1):
+        node_list.append(f"node{i}")
+    return node_list
+
 
 @app.route(f"/{base_path}/files/<int:k_replica>", methods=['POST'])
 def add_files(k_replica):
@@ -55,9 +67,6 @@ def add_files(k_replica):
     size = len(file_data)
     created = date.today()
 
-
-
-    # RAID 1: cut the file in half and store both halves 2x
     file_data_1 = file_data[:math.ceil(size/2.0)]
     file_data_2 = file_data[math.ceil(size/2.0):]
     # Generate two random chunk names for each half
@@ -69,18 +78,45 @@ def add_files(k_replica):
             k_replica_names.append((i, id_generator(8)))   # (0, "ASASHDJASD")
    
     print(f"Genreated block names : {k_replica_names}")
+    node_list = get_node_list(number_of_worker_nodes)
 
 
-    # Example: (0, "ASASHDJASD"), (0, "ASASHDJASD"), (0, "ASASHDJASD"), (1, "ASASHDJASD"), (1, "ASASHDJASD")
     for block in k_replica_names:
         if block[0] == 0:
             pb_file = pb_models.file()
             pb_file.filename = block[1]
-            socketUtils.pushChunkToWorker(pb_file, file_data_1)
+            random_node = None
+            if(len(node_list) != 0):
+                random.shuffle(node_list)
+                random_node = node_list[0]
+                node_list.remove(random_node)
+            else:
+                node_list = get_node_list(number_of_worker_nodes)
+                random.shuffle(node_list)
+                random_node = node_list[0]
+                node_list.remove(random_node)
+
+            print(f"Sending part 1 to {random_node}")
+            socketUtils.pushChunkToWorkerRouter(random_node, pb_file, file_data_1)
         else:
             pb_file = pb_models.file()
             pb_file.filename = block[1]
-            socketUtils.pushChunkToWorker(pb_file, file_data_2)    
+
+            random_node = None
+            if(len(node_list) != 0):
+                random.shuffle(node_list)
+                random_node = node_list[0]
+                node_list.remove(random_node)
+            else:
+                node_list = get_node_list(number_of_worker_nodes)
+                random.shuffle(node_list)
+                random_node = node_list[0]
+                node_list.remove(random_node)
+
+
+            print(f"Sending part 2 to {random_node}")
+            socketUtils.pushChunkToWorkerRouter(random_node,pb_file, file_data_2)    
+        
         
     blocknammes_1 = [block[1] for block in k_replica_names if block[0] == 0]
     print(f"blocknammes_1 {blocknammes_1}")

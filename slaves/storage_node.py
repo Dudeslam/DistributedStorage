@@ -6,6 +6,7 @@ from utils.slave_socket_utils import SlaveSocketUtils
 import models.messages_pb2 as pb_models # Generated Protobuf messages
 
 nodename = sys.argv[1]
+print(nodename)
 data_folder = sys.argv[1] if len(sys.argv) > 1 else "./"
 if data_folder != "./":
     try:
@@ -45,7 +46,7 @@ with open("../config.txt") as f:
     masterip = f.readline().split('=')[1].strip()
 
 print(f"connectiong to master ip : {masterip} ")
-slave_socket_utils = SlaveSocketUtils(masterip)
+slave_socket_utils = SlaveSocketUtils(masterip, nodename)
 
 
 while True:
@@ -55,15 +56,20 @@ while True:
     except KeyboardInterrupt:
         break
     # At this point one or multiple sockets have received a message
-    if slave_socket_utils.isStoreRequest(socks):
+    if slave_socket_utils.isStoreRequestDealer(socks):
         print("StoreRequest rechieved")
        # Incoming message on the 'receiver' socket where we get tasks to store a chunk
-        msg = slave_socket_utils.readStoreRequest()
-        
+        ## OLD
+        #msg = slave_socket_utils.readStoreRequest()
+        msg = slave_socket_utils.readStoreRequestDealer()
+
+
         # Parse the Protobuf message from the first frame
         model = pb_models.file()
+        # Old model.ParseFromString(msg[0])
         model.ParseFromString(msg[0])
         # The data is the second frame
+        # OLD data = msg[1]
         data = msg[1]
         print(f"Chunk with name {model.filename} rechieved")
         # Store the chunk with the given filename
@@ -114,7 +120,6 @@ while True:
                         with open(data_folder+'/'+filename, "rb") as in_file:
                             print(f"Found chunk {filename}, sending it back")
                             slave_socket_utils.sendChunkToMaster(filename, in_file.read())
-                            break
                     except FileNotFoundError:
                     # The chunk is not stored by this node
                         pass

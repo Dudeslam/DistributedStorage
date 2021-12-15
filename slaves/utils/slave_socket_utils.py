@@ -6,7 +6,7 @@ import random # For selecting a random half when requesting chunks
 
 class SlaveSocketUtils:
 
-    def __init__(self, server_address):
+    def __init__(self, server_address, node_name):
         
         # pull incomming chunk storage request
 
@@ -24,10 +24,17 @@ class SlaveSocketUtils:
         # Receive every message (empty subscription)
         self.subscriber.setsockopt(zmq.SUBSCRIBE, b'')
 
+
+        self.dealer = context.socket(zmq.DEALER)
+        self.dealer.setsockopt_string(zmq.IDENTITY, node_name)
+        self.dealer.connect(f"tcp://{server_address}:6000")
+
         # Use a Poller to monitor two sockets at the same time
         self.poller = zmq.Poller()
         self.poller.register(self.receiver, zmq.POLLIN)
         self.poller.register(self.subscriber, zmq.POLLIN)
+        self.poller.register(self.dealer, zmq.POLLIN)
+
 
     def awaitUpdateFromMaster(self):
         return dict(self.poller.poll())
@@ -38,11 +45,17 @@ class SlaveSocketUtils:
     def isStoreRequest(self, socket_dict):
         return self.receiver in socket_dict
 
+    def isStoreRequestDealer(self, socket_dict):
+        return self.dealer in socket_dict    
+
     def readBroadcastMessage(self):
         return self.subscriber.recv()
 
     def readStoreRequest(self):
         return self.receiver.recv_multipart()
+
+    def readStoreRequestDealer(self):
+        return self.dealer.recv_multipart()
 
 
     def sendChunkToMaster(self, filename, raw_bytes):

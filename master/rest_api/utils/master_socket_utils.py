@@ -21,12 +21,21 @@ class MasterSocketUtils():
         self.broadcast_socket = context.socket(zmq.PUB)
         self.broadcast_socket.bind("tcp://*:5559")
 
+        self.router = context.socket(zmq.ROUTER)
+        self.router.bind("tcp://*:6000")
     
     def pushChunkToWorker(self, pb_file, file_chunk):
         self.push_socket.send_multipart([
             pb_file.SerializeToString(),
             file_chunk
         ])
+
+    def pushChunkToWorkerRouter(self, worker_id, pb_file, file_chunk):
+        self.router.send_multipart([
+            bytes(worker_id, 'utf-8'),
+            pb_file.SerializeToString(),
+            file_chunk
+        ])    
 
     def broadcastChunkRequest(self, model):
         self.broadcast_socket.send(model.SerializeToString())
