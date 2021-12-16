@@ -1,8 +1,8 @@
 import requests
 import base64
 
-k = 2
-file_name = "1KB.txt"
+k = 3
+file_name = "10MB.txt"
 url_stratAStore = f"http://62.107.0.222:9000/exercise2/files/{k}"
 filepath = f"../testfiles/{file_name}"
 
@@ -16,7 +16,8 @@ data = {"filename" : f"testfiles/{file_name}",
 
 number_of_test_runs = 100
 
-for _ in range(number_of_test_runs):
+for i in range(number_of_test_runs):
+    print(f"{i}/100")
     response = requests.post(url_stratAStore, json=data)
 
 
