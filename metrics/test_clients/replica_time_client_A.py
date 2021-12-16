@@ -1,9 +1,9 @@
 import requests
 import base64
 
-k = 3
+k = 2
 file_name = "1KB.txt"
-url_stratAStore = f"http://localhost:9000/exercise2/files/{k}"
+url_stratAStore = f"http://62.107.0.222:9000/exercise2/files/{k}"
 filepath = f"../testfiles/{file_name}"
 
 data = open(filepath, "rb").read()

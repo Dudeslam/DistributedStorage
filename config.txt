@@ -2,11 +2,7 @@ masterip=192.168.87.205
 pi1=192.168.87.170  
 pi2=192.168.87.179
 pi3=192.168.87.151
-<<<<<<< HEAD
 logfile=replica_k2strategyB100MB
-=======
-logfile=replica_k2strategyB1KB
->>>>>>> 0e94a726a5bcde186ab45ab96303c0881415e84e
 
 
 // TODO
@@ -14,17 +10,13 @@ logfile=replica_k2strategyA1KB       // done
 logfile=replica_k2strategyA10KB      // done
 logfile=replica_k2strategyA100KB     // done
 logfile=replica_k2strategyA10MB      // done
-<<<<<<< HEAD
 logfile=replica_k2strategyA100MB     // done
-=======
-logfile=replica_k2strategyA100MB      // done
->>>>>>> 0e94a726a5bcde186ab45ab96303c0881415e84e
 
 logfile=replica_k2strategyB1KB       // done 
 logfile=replica_k2strategyB10KB      // done
 logfile=replica_k2strategyB100KB     // done
 logfile=replica_k2strategyB10MB      // done
-logfile=replica_k2strategyB100MB
+logfile=replica_k2strategyB100MB     // done
 
 logfile=replica_k3strategyA1KB
 logfile=replica_k3strategyA10KB
