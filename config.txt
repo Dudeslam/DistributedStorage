@@ -1,7 +1,7 @@
-masterip=localhost
-pi1=localhost  
-pi2=localhost
-pi3=localhost
+masterip=192.168.87.205
+pi1=192.168.87.170  
+pi2=192.168.87.179
+pi3=192.168.87.151
 logfile=retrieve_1KB
 
 
