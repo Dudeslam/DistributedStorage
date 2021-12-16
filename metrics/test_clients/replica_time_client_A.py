@@ -4,7 +4,7 @@ import base64
 k = 3
 file_name = "1KB.txt"
 url_stratAStore = f"http://localhost:9000/exercise2/files/{k}"
-filepath = f"testfiles/{file_name}"
+filepath = f"../testfiles/{file_name}"
 
 data = open(filepath, "rb").read()
 encoded = base64.b64encode(data).decode()

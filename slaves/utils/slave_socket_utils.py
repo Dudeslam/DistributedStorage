@@ -79,7 +79,11 @@ class SlaveSocketUtils:
         else:
             return self.dealer_pi3     
 
+    def sendAck(self, active_dealer):
+        return active_dealer.send_string("")
 
+    def recheiveAck(self):
+        return self.slave_router.recv_string()
 
     def isBroadcastRequest(self, socket_dict):
         return self.subscriber in socket_dict

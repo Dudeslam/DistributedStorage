@@ -3,7 +3,7 @@ class MetricLog:
     def __init__(self, log_path):
         self.log_path = log_path
         self.current_run = 0
-        f = open(self.log_path, "w")
+        f = open(f"{self.log_path}", "w")
         f.write("run, time \n")
         f.close()
 

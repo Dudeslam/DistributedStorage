@@ -20,7 +20,15 @@ import time
 
 storageUtils = StorageUtils()
 socketUtils = MasterSocketUtils()
-metric_log = logger.MetricLog("../../metrics/strategyA.csv")
+log = ""
+with open("../../config.txt") as f:
+    masterip = f.readline().split('=')[1].strip()
+    pi1 =  f.readline().split('=')[1].strip()
+    pi2 =  f.readline().split('=')[1].strip()
+    pi3 =  f.readline().split('=')[1].strip()
+    log =  f.readline().split('=')[1].strip()
+    
+metric_log = logger.MetricLog(f"../../metrics/logs/{log}.csv")
 
 app = Flask(__name__)
 
@@ -228,6 +236,7 @@ def delegate_work(k_replica):
     size = len(file_data)
     created = date.today()
 
+    start_time = time.time()
     file_data_1 = file_data[:math.ceil(size/2.0)]
     file_data_2 = file_data[math.ceil(size/2.0):]
     # Generate two random chunk names for each half
@@ -284,8 +293,14 @@ def delegate_work(k_replica):
 
             print(f"Sending part 2 to {random_node}")
             socketUtils.pushChunkToWorkerRouter(random_node, pb_file, file_data_2)   
-        
- 
+    
+    for block in range(2):  
+        print("Recheive ack to worker")
+        _ = socketUtils.receiveAck()
+    
+    endtime = time.time()
+    replication_time = endtime - start_time
+    metric_log.log_entry(str(replication_time) )
     # Return the ID of the new file record with HTTP 201 (Created) status code
     return make_response({"id":id}, 201)
 

@@ -124,7 +124,12 @@ while True:
 
                 print(f"Sending block: {pb_model.filename} to {random_node}")
                 slave_socket_utils.sendChunkToWorker(random_node,pb_model, data)
-                           
+
+            for _ in range(number_of_request_replica-1):
+                print("Rechevied ack from worker")
+                _ = slave_socket_utils.recheiveAck()
+
+            slave_socket_utils.sendResponse("")              
 
     if slave_socket_utils.isSlaveRequest(socks):
         active_dealer_sock = slave_socket_utils.get_active_slave_dealer(socks)
@@ -138,6 +143,7 @@ while True:
         # Store the chunk with the given filename
         chunk_local_path = data_folder+'/'+model.filename
         write_file(data, chunk_local_path)
+        slave_socket_utils.sendAck(active_dealer_sock)
 
     if slave_socket_utils.isBroadcastRequest(socks):
         print("Broadcast rechieved")
