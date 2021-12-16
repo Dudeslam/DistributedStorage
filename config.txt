@@ -2,7 +2,7 @@ masterip=192.168.87.205
 pi1=192.168.87.170  
 pi2=192.168.87.179
 pi3=192.168.87.151
-logfile=replica_k2strategyB100MB
+logfile=replica_k3strategyB1KB
 
 
 // TODO
@@ -18,11 +18,11 @@ logfile=replica_k2strategyB100KB     // done
 logfile=replica_k2strategyB10MB      // done
 logfile=replica_k2strategyB100MB     // done
 
-logfile=replica_k3strategyA1KB
-logfile=replica_k3strategyA10KB
-logfile=replica_k3strategyA100KB
-logfile=replica_k3strategyA10MB
-logfile=replica_k3strategyA100M
+logfile=replica_k3strategyA1KB       // done
+logfile=replica_k3strategyA10KB      // done
+logfile=replica_k3strategyA100KB     // done
+logfile=replica_k3strategyA10MB      // done
+logfile=replica_k3strategyA100M      -- missing
 
 logfile=replica_k3strategyB1KB
 logfile=replica_k3strategyB10KB
