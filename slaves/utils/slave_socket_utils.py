@@ -46,6 +46,7 @@ class SlaveSocketUtils:
         self.dealer_pi2.setsockopt_string(zmq.IDENTITY, node_name)
         self.dealer_pi3.setsockopt_string(zmq.IDENTITY, node_name)
 
+        time.sleep(10)
         print(f"ips : {self.pi1}, {self.pi2}, {self.pi2}")
         self.dealer_pi1.connect(f"tcp://{self.pi1}:6001")
         self.dealer_pi2.connect(f"tcp://{self.pi2}:6002")
