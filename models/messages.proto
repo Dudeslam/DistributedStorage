@@ -2,11 +2,14 @@ syntax = "proto3";
 
 message file
 {
-    uint32 id = 1;
-    string filename = 2;
-    uint64 size = 3;
-    string type = 4;
-    uint64 created = 5;
+    string filename = 1;
+    string type = 2;
+}
+
+message delegate_file
+{
+    repeated string filenames = 1;
+    string type = 2;
 }
 
 

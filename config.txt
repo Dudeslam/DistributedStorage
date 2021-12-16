@@ -1,1 +1,4 @@
 masterip=localhost
+pi1=localhost  
+pi2=localhost
+pi3=localhost

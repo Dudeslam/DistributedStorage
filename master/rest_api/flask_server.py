@@ -1,6 +1,7 @@
 import sys
 sys.path.insert(1, "../../")
 import models.messages_pb2 as pb_models
+import metrics.metric_log as logger
 from flask import Flask
 from flask import Flask, make_response, request, send_file
 from zmq.backend import Socket
@@ -14,16 +15,16 @@ import math # For cutting the file in half
 import random # For selecting a random half when requesting chunks
 import io # For sending binary data in a HTTP response
 from base64 import b64decode
-
+import time
 
 
 storageUtils = StorageUtils()
 socketUtils = MasterSocketUtils()
+metric_log = logger.MetricLog("../../metrics/strategyA.csv")
 
 app = Flask(__name__)
 
 base_path = "exercise2"
-#number_of_worker_nodes = 3
 
 @app.route(f"/{base_path}/helloworld")
 def hello():
@@ -57,6 +58,13 @@ def get_node_list(number_of_nodes):
         node_list.append(f"node{i}")
     return node_list
 
+def findDistinctBlock(part_filenames, ack_meta_data):
+    for part_file in part_filenames:
+        for node_meta_data in ack_meta_data:
+            for filename_meta in node_meta_data[1]:
+                if part_file == filename_meta:
+                    return (part_file, node_meta_data[0])    
+
 
 @app.route(f"/{base_path}/files/<int:k_replica>", methods=['POST'])
 def add_files(k_replica):
@@ -66,6 +74,8 @@ def add_files(k_replica):
     file_data = b64decode(payload.get('contents_b64'))
     size = len(file_data)
     created = date.today()
+    
+    start_time = time.time()
 
     file_data_1 = file_data[:math.ceil(size/2.0)]
     file_data_2 = file_data[math.ceil(size/2.0):]
@@ -80,11 +90,12 @@ def add_files(k_replica):
     print(f"Genreated block names : {k_replica_names}")
     node_list = get_node_list(socketUtils.number_of_connected_subs)
 
-
     for block in k_replica_names:
         if block[0] == 0:
             pb_file = pb_models.file()
+            pb_file.type = "file"
             pb_file.filename = block[1]
+
             random_node = None
             if(len(node_list) != 0):
                 random.shuffle(node_list)
@@ -100,6 +111,7 @@ def add_files(k_replica):
             socketUtils.pushChunkToWorkerRouter(random_node, pb_file, file_data_1)
         else:
             pb_file = pb_models.file()
+            pb_file.type = "file"
             pb_file.filename = block[1]
 
             random_node = None
@@ -113,28 +125,28 @@ def add_files(k_replica):
                 random_node = node_list[0]
                 node_list.remove(random_node)
 
-
             print(f"Sending part 2 to {random_node}")
             socketUtils.pushChunkToWorkerRouter(random_node,pb_file, file_data_2)    
-        
+
+    
+    for block in range(len(k_replica_names)):
+        _ = socketUtils.receiveAck()
+
         
     blocknammes_1 = [block[1] for block in k_replica_names if block[0] == 0]
     print(f"blocknammes_1 {blocknammes_1}")
     blocknammes_2 = [block[1] for block in k_replica_names if block[0] == 1]
     print(f"blocknammes_2 {blocknammes_2}")
     id = storageUtils.insert_file_meta_data(filename, size, content_type, created, blocknammes_1, blocknammes_2)
+        
+    endtime = time.time()
+
+    replication_time = endtime - start_time
+    metric_log.log_entry(str(replication_time) )
+
 
     # Return the ID of the new file record with HTTP 201 (Created) status code
     return make_response({"id":id}, 201)
-
-
-def findDistinctBlock(part_filenames, ack_meta_data):
-    for part_file in part_filenames:
-        for node_meta_data in ack_meta_data:
-            for filename_meta in node_meta_data[1]:
-                if part_file == filename_meta:
-                    return (part_file, node_meta_data[0])
-
     
 
 @app.route(f"/{base_path}/files/<int:file_id>",  methods=['GET'])
@@ -204,6 +216,80 @@ def download_file(file_id):
     # Combine the parts and serve the file
     file_data = file_data_parts[0] + file_data_parts[1]
     return send_file(io.BytesIO(file_data), mimetype=file_as_dict['content_type'])
+
+
+
+@app.route(f"/{base_path}/delegate/<int:k_replica>", methods=['POST'])
+def delegate_work(k_replica):
+    payload = request.get_json()
+    filename = payload.get('filename')
+    content_type = payload.get('content_type')
+    file_data = b64decode(payload.get('contents_b64'))
+    size = len(file_data)
+    created = date.today()
+
+    file_data_1 = file_data[:math.ceil(size/2.0)]
+    file_data_2 = file_data[math.ceil(size/2.0):]
+    # Generate two random chunk names for each half
+
+    split = 2
+    k_replica_names = []
+    for i in range(split):
+        for _ in range(k_replica):
+            k_replica_names.append((i, id_generator(8)))   # (0, "ASASHDJASD")
+
+           
+    blocknammes_1 = [block[1] for block in k_replica_names if block[0] == 0]
+    print(f"blocknammes_1 {blocknammes_1}")
+    blocknammes_2 = [block[1] for block in k_replica_names if block[0] == 1]
+    print(f"blocknammes_2 {blocknammes_2}")
+    id = storageUtils.insert_file_meta_data(filename, size, content_type, created, blocknammes_1, blocknammes_2)
+
+    node_list = get_node_list(socketUtils.number_of_connected_subs)
+    print(f"node list : {node_list}")
+    for block in range(2):
+        if block == 0:
+            pb_file = pb_models.delegate_file()
+            pb_file.type = "delegate_file"
+            pb_file.filenames.extend(blocknammes_1)
+
+            random_node = None
+            if(len(node_list) != 0):
+                random.shuffle(node_list)
+                random_node = node_list[0]
+                node_list.remove(random_node)
+            else:
+                node_list = get_node_list(socketUtils.number_of_connected_subs)
+                random.shuffle(node_list)
+                random_node = node_list[0]
+                node_list.remove(random_node)
+
+            print(f"Sending part 1 to {random_node}")
+            socketUtils.pushChunkToWorkerRouter(random_node, pb_file, file_data_1)
+        else:
+            pb_file = pb_models.delegate_file()
+            pb_file.type = "delegate_file"
+            pb_file.filenames.extend(blocknammes_2)
+
+            random_node = None
+            if(len(node_list) != 0):
+                random.shuffle(node_list)
+                random_node = node_list[0]
+                node_list.remove(random_node)
+            else:
+                node_list = get_node_list(socketUtils.number_of_connected_subs)
+                random.shuffle(node_list)
+                random_node = node_list[0]
+                node_list.remove(random_node)
+
+            print(f"Sending part 2 to {random_node}")
+            socketUtils.pushChunkToWorkerRouter(random_node, pb_file, file_data_2)   
+        
+ 
+    # Return the ID of the new file record with HTTP 201 (Created) status code
+    return make_response({"id":id}, 201)
+
+
 
 
 app.run(host="0.0.0.0", port=9000)
