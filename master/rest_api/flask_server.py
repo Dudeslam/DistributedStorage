@@ -23,7 +23,7 @@ socketUtils = MasterSocketUtils()
 app = Flask(__name__)
 
 base_path = "exercise2"
-number_of_worker_nodes = 3
+#number_of_worker_nodes = 3
 
 @app.route(f"/{base_path}/helloworld")
 def hello():
@@ -44,7 +44,7 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 
 def get_random_node_list(number_of_nodes):
     node_list = []
-    for i in range(number_of_worker_nodes):
+    for i in range(socketUtils.number_of_connected_subs):
         randon_num = random.randint(1,number_of_nodes) 
         node_list.append(f"node{randon_num}")
 
@@ -78,7 +78,7 @@ def add_files(k_replica):
             k_replica_names.append((i, id_generator(8)))   # (0, "ASASHDJASD")
    
     print(f"Genreated block names : {k_replica_names}")
-    node_list = get_node_list(number_of_worker_nodes)
+    node_list = get_node_list(socketUtils.number_of_connected_subs)
 
 
     for block in k_replica_names:
@@ -91,7 +91,7 @@ def add_files(k_replica):
                 random_node = node_list[0]
                 node_list.remove(random_node)
             else:
-                node_list = get_node_list(number_of_worker_nodes)
+                node_list = get_node_list(socketUtils.number_of_connected_subs)
                 random.shuffle(node_list)
                 random_node = node_list[0]
                 node_list.remove(random_node)
@@ -108,7 +108,7 @@ def add_files(k_replica):
                 random_node = node_list[0]
                 node_list.remove(random_node)
             else:
-                node_list = get_node_list(number_of_worker_nodes)
+                node_list = get_node_list(socketUtils.number_of_connected_subs)
                 random.shuffle(node_list)
                 random_node = node_list[0]
                 node_list.remove(random_node)
@@ -160,7 +160,7 @@ def download_file(file_id):
     socketUtils.broadcastChunkRequest(all_files_model)
 
     ack_meta_data = []
-    for _ in range(number_of_worker_nodes):
+    for _ in range(socketUtils.number_of_connected_subs):
         msg = socketUtils.receiveAcknowlegde()
         ack_model = pb_models.broadcast_response_node()
         ack_model.ParseFromString(msg)
