@@ -2,7 +2,7 @@ masterip=192.168.87.205
 pi1=192.168.87.170  
 pi2=192.168.87.179
 pi3=192.168.87.151
-logfile=replica_k2strategyA100M
+logfile=replica_k2strategyB100MB
 
 
 // TODO
@@ -10,12 +10,12 @@ logfile=replica_k2strategyA1KB       // done
 logfile=replica_k2strategyA10KB      // done
 logfile=replica_k2strategyA100KB     // done
 logfile=replica_k2strategyA10MB      // done
-logfile=replica_k2strategyA100M
+logfile=replica_k2strategyA100MB     // done
 
-logfile=replica_k2strategyB1KB
-logfile=replica_k2strategyB10KB
-logfile=replica_k2strategyB100KB
-logfile=replica_k2strategyB10MB
+logfile=replica_k2strategyB1KB       // done 
+logfile=replica_k2strategyB10KB      // done
+logfile=replica_k2strategyB100KB     // done
+logfile=replica_k2strategyB10MB      // done
 logfile=replica_k2strategyB100MB
 
 logfile=replica_k3strategyA1KB
@@ -30,17 +30,6 @@ logfile=replica_k3strategyB100KB
 logfile=replica_k3strategyB10MB
 logfile=replica_k3strategyB100MB
 
-logfile=replica_k4strategyA1KB
-logfile=replica_k4strategyA10KB
-logfile=replica_k4strategyA100KB
-logfile=replica_k4strategyA10MB
-logfile=replica_k4strategyA100M
-
-logfile=replica_k4strategyB1KB
-logfile=replica_k4strategyB10KB
-logfile=replica_k4strategyB100KB
-logfile=replica_k4strategyB10MB
-logfile=replica_k4strategyB100MB
 
 logfile=retrieve_1KB
 logfile=retrieve_10KB
