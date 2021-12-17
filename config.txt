@@ -2,7 +2,11 @@ masterip=192.168.87.205
 pi1=192.168.87.170  
 pi2=192.168.87.179
 pi3=192.168.87.151
+<<<<<<< HEAD
 logfile=replica_k3strategyB1MB
+=======
+logfile=retrieve_1KB
+>>>>>>> 4d6451e99bc5c6549a29a9480984ec323a3f0d9d
 
 
 // TODO
@@ -31,11 +35,19 @@ logfile=replica_k3strategyB10MB      // done
 logfile=replica_k3strategyB100MB     // done
 
 
+<<<<<<< HEAD
 logfile=retrieve_1MB                 //not
 logfile=retrieve_10KB                //done
 logfile=retrieve_100KB               //done
 logfile=retrieve_10MB                //done
 logfile=retrieve_100MB               //done
+=======
+logfile=retrieve_1KB                 -- missing
+logfile=retrieve_10KB                done
+logfile=retrieve_100KB               done
+logfile=retrieve_10MB                done
+logfile=retrieve_100MB               done
+>>>>>>> 4d6451e99bc5c6549a29a9480984ec323a3f0d9d
 
 
 

@@ -2,7 +2,7 @@ import requests
 import base64
 
 k = 3
-file_name = "10MB.txt"
+file_name = "1KB.txt"
 url_stratAStore = f"http://62.107.0.222:9000/exercise2/delegate/{k}"
 filepath = f"../testfiles/{file_name}"
 
