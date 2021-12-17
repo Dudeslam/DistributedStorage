@@ -2,7 +2,7 @@ import requests
 import base64
 
 k = 3
-file_name = "100KB.txt"
+file_name = "1MB.txt"
 url_stratAStore = f"http://62.107.0.222:9000/exercise2/files/{k}"
 filepath = f"../testfiles/{file_name}"
 
@@ -14,7 +14,7 @@ data = {"filename" : f"testfiles/{file_name}",
         "content_type": "text/plain",
         "contents_b64": encoded }
 
-number_of_test_runs = 50
+number_of_test_runs = 100
 
 for i in range(number_of_test_runs):
     print(f"{i}/100")
