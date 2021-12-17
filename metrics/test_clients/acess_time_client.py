@@ -4,7 +4,7 @@ import time
 sys.path.insert(1, "../")
 import metric_log as logger
 
-start_id = 3000
+start_id = 3668
 url_stratAStore = f"http://62.107.0.222:9000/exercise2/files"
 
 
