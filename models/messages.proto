@@ -6,10 +6,22 @@ message file
     string type = 2;
 }
 
+message getdata_request
+{
+    string filename = 1;
+}
+
 message delegate_file
 {
     repeated string filenames = 1;
     string type = 2;
+}
+
+message delegate_erasure_file
+{
+    string filename = 1;
+    string type = 2;
+    int32 max_erasures = 3;
 }
 
 
@@ -33,6 +45,17 @@ message broadcast_request_specefic
     repeated string nodes = 1;
     string type = 2;
     repeated string filenames = 4;
+}
+
+message broadcast_request_fragment
+{
+    string filename = 1;
+    string type = 2;
+}
+
+message worker_store_file_response
+{
+    repeated string fragments = 1;
 }
 
 

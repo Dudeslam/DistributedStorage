@@ -125,7 +125,10 @@ class SlaveSocketUtils:
         self.sender.send(model.SerializeToString())
 
     def sendResponse(self, filename):
-        self.sender.send_string(filename) 
+        self.sender.send_string(filename)
+
+    def sender_send_multipart(self, multipart):
+        self.sender.send_multipart(multipart)
         
     
     

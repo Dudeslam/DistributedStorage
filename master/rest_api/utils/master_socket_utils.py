@@ -81,14 +81,20 @@ class MasterSocketUtils():
     def receiveAck(self):
         return self.pull_socket.recv_string()
 
+    def receive(self):
+        return self.pull_socket.recv_string()
+
 
     def receiveChunk(self):
         return self.pull_socket.recv_multipart()
 
-
     def receiveAcknowlegde(self):
         return self.pull_socket.recv()
 
+    def broadcast_send_multipart(self, multipart):
+        self.broadcast_socket.send_multipart(multipart)
 
+    def pull_receive_multipart(self):
+        return self.pull_socket.recv_multipart()
 
 

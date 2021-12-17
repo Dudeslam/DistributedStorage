@@ -1,4 +1,12 @@
+import csv
+import json
+import logging
 import sys
+
+from erasure_codes import reedsolomon
+from models.file import File
+from repositories import file_repository
+
 sys.path.insert(1, "../../")
 import models.messages_pb2 as pb_models
 import metrics.metric_log as logger
@@ -33,6 +41,11 @@ metric_log = logger.MetricLog(f"../../metrics/logs/{log}.csv")
 app = Flask(__name__)
 
 base_path = "exercise2"
+
+file_handle = open(f'../../metrics/logs/erasure_server_results.csv', 'w')
+csv_writer = csv.writer(file_handle)
+fields = ['event', 'file_size', 'storage_mode', 'max_erasures', 'time']
+csv_writer.writerow(fields)
 
 @app.route(f"/{base_path}/helloworld")
 def hello():
@@ -225,8 +238,6 @@ def download_file(file_id):
     file_data = file_data_parts[0] + file_data_parts[1]
     return send_file(io.BytesIO(file_data), mimetype=file_as_dict['content_type'])
 
-
-
 @app.route(f"/{base_path}/delegate/<int:k_replica>", methods=['POST'])
 def delegate_work(k_replica):
     payload = request.get_json()
@@ -305,8 +316,174 @@ def delegate_work(k_replica):
     return make_response({"id":id}, 201)
 
 
+@app.route(f'/exercise3/files/<string:file_id>', methods=['GET'])
+def download_file_erasure(file_id):
+    file = file_repository.get_file(file_id)
 
+    print(f"File requested: {file.fileName}")
+
+    # Parse the storage details JSON string
+    storage_details = json.loads(file.storage_details)
+
+    if file.storage_mode == 'erasure_coding_rs':
+
+        coded_fragments = storage_details['coded_fragments']
+        max_erasures = storage_details['max_erasures']
+
+        tasks = reedsolomon.get_file_tasks(
+            coded_fragments,
+            max_erasures,
+            file.size
+        )
+
+        for task in tasks:
+            socketUtils.broadcastChunkRequest(task)
+
+        # Receive all chunks and insert them into the symbols array
+        symbols = []
+        for _ in range(len(tasks)):
+            result = socketUtils.pull_receive_multipart()
+            # In this case we don't care about the received name, just use the
+            # data from the second frame
+            symbols.append({
+                "chunkname": result[0].decode('utf-8'),
+                "data": bytearray(result[1])
+            })
+        print("All coded fragments received successfully")
+
+        # Reconstruct the original file data
+        file_data = reedsolomon.decode_file(symbols)[:file.size]
+
+    elif file.storage_mode == 'erasure_coding_rs_random_worker':
+        raise NotImplementedError('Need to implement assigning the decode part to worker')
+    else:
+        raise NotImplementedError('Unsupported storage mode')
+
+    return send_file(io.BytesIO(file_data), mimetype=file.content_type)
+
+
+@app.route(f'/exercise3/files_mp', methods=['POST'])
+def add_files_multipart():
+    start_time = time.time()
+
+    # Flask separates files from the other form fields
+    payload = request.form
+    files = request.files
+
+    # Make sure there is a file in the request
+    if not files or not files.get('file'):
+        logging.error("No file was uploaded in the request!")
+        return make_response("File missing!", 400)
+
+    # Reference to the file under 'file' key
+    file = files.get('file')
+    # The sender encodes a the file name and type together with the file contents
+    filename = file.filename
+    content_type = file.mimetype
+    # Load the file contents into a bytearray and measure its size
+    data = bytearray(file.read())
+    size = len(data)
+    print("File received: %s, size: %d bytes, type: %s" % (filename, size, content_type))
+
+    # Read the requested storage mode from the form (default value: 'raid1')
+    storage_mode = payload.get('storage', 'erasure_coding_rs')
+    print("Storage mode: %s" % storage_mode)
+
+    if storage_mode == 'erasure_coding_rs':
+        # Reed Solomon code
+        # Parse max_erasures (everything is a string in request.form,
+        # we need to convert to int manually), set default value to 1
+        max_erasures = int(payload.get('max_erasures', 1))
+
+        # Store the file contents with Reed Solomon erasure coding
+        tasks, fragments = reedsolomon.get_store_file_tasks(data, max_erasures)
+        fragment_names = list(map(lambda x: x.filename, tasks))
+
+        print("Sending store data requests to other nodes")
+        for task, fragment in zip(tasks, fragments):
+            socketUtils.pushChunkToWorker(task, fragment)
+
+        print("Awaiting responses from other nodes")
+        for task_nbr in range(4):
+            resp = socketUtils.receiveAck()
+            print('Received: %s' % resp)
+
+        end_time = time.time()
+        total_time = end_time - start_time
+        csv_writer.writerow(['erasure_write', size, storage_mode, max_erasures, total_time])
+
+        storage_details = {
+            "coded_fragments": fragment_names,
+            "max_erasures": max_erasures
+        }
+    elif storage_mode == 'erasure_coding_rs_random_worker':
+        # Make random worker encode and store file on nodes
+        # Build task
+        max_erasures = int(payload.get('max_erasures', 1))
+        task = pb_models.delegate_erasure_file()
+        task.max_erasures = max_erasures
+        task.type = "WORKER_STORE_FILE_REQ"
+        task.filename = filename
+
+        node_list = get_node_list(socketUtils.number_of_connected_subs)
+
+        random_node = None
+        if (len(node_list) != 0):
+            random.shuffle(node_list)
+            random_node = node_list[0]
+            node_list.remove(random_node)
+        else:
+            node_list = get_node_list(socketUtils.number_of_connected_subs)
+            random.shuffle(node_list)
+            random_node = node_list[0]
+            node_list.remove(random_node)
+
+        socketUtils.pushChunkToWorkerRouter('node1', task, data)
+
+        end_time = time.time()
+        total_time = end_time - start_time
+        csv_writer.writerow(['erasure_write', size, storage_mode, max_erasures, total_time])
+
+        # Await response from worker node
+        msg = socketUtils.pull_receive_multipart()
+
+        end_time = time.time()
+        total_time = end_time - start_time
+        csv_writer.writerow(['erasure_write_worker_response', size, storage_mode, max_erasures, total_time])
+
+        task = pb_models.worker_store_file_response()
+        task.ParseFromString(msg[0])
+
+        storage_details = {
+            "coded_fragments": list(task.fragments),
+            "max_erasures": max_erasures
+        }
+    else:
+        logging.error("Unexpected storage mode: %s" % storage_mode)
+        return make_response("Wrong storage mode", 400)
+
+    # Insert the File record in the DB
+
+    file = File(fileName=filename,
+                size=size, content_type=content_type,
+                storage_mode=storage_mode,
+                storage_details=json.dumps(storage_details))
+
+    file_repository.add_file(file)
+    file = file.to_dict()
+
+    end_time = time.time()
+    total_time = end_time - start_time
+    csv_writer.writerow(['finished', size, storage_mode, max_erasures, total_time])
+    return make_response({"id": file['id']}, 201)
+
+
+@app.errorhandler(500)
+def server_error(e):
+    logging.exception("Internal error: %s", e)
+    return make_response({"error": str(e)}, 500)
 
 app.run(host="0.0.0.0", port=9000)
 app.teardown_appcontext(storageUtils.close_db)
+app.teardown_appcontext(file_handle.close())
 
