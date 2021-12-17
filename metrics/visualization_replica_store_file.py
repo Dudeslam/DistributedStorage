@@ -70,4 +70,9 @@ fig.append_trace(trace0, 1, 1)
 fig.append_trace(trace3, 1, 2)
 fig.append_trace(trace1, 1, 2)
 
+fig.update_layout(height=600, width=1600, title_text="Store file comparison")
 fig.show()       
+
+
+
+
