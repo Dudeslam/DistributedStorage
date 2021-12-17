@@ -14,7 +14,7 @@ data = {"filename" : f"testfiles/{file_name}",
         "content_type": "text/plain",
         "contents_b64": encoded }
 
-number_of_test_runs = 50
+number_of_test_runs = 100
 
 for i in range(number_of_test_runs):
     print(f"{i}/100")
