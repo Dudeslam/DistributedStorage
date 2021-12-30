@@ -100,7 +100,7 @@ class SlaveSocketUtils:
 
     def readSlaveRequest(self, active_socket):
         return active_socket.recv_multipart()
-
+    
     def readStoreRequest(self):
         return self.receiver.recv_multipart()
 
@@ -113,6 +113,12 @@ class SlaveSocketUtils:
                     bytes(filename, 'utf-8'),
                     raw_bytes
                 ])
+
+    def sendFileToMaster(self, filename, file_data):
+        self.sender.send_multipart([
+                bytes(filename, 'utf-8'),
+                file_data
+            ])
     
     def sendChunkToWorker(self, node, model, filechunk):
         self.slave_router.send_multipart([
@@ -120,6 +126,11 @@ class SlaveSocketUtils:
             model.SerializeToString(),
             filechunk
         ])
+
+    def getFragmentFromWorker(self, model):
+        self.slave_router.send_multipart([
+        model.SerializeToString(),
+    ])
 
     def acknowledgeToMaster(self, model):
         self.sender.send(model.SerializeToString())
@@ -129,6 +140,13 @@ class SlaveSocketUtils:
 
     def sender_send_multipart(self, multipart):
         self.sender.send_multipart(multipart)
+
+    def sender_send_retrieve_file_tasks(self, multipart):
+        self.sender.send(multipart.SerializeToString())   
+
+    def slave_send_retrieve_file_tasks(self, multipart):
+        self.slave_router.send(multipart.SerializeToString())   
+
         
     
     

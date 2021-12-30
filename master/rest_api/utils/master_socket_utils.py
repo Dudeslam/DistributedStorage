@@ -70,6 +70,13 @@ class MasterSocketUtils():
             bytes(worker_id, 'utf-8'),
             pb_file.SerializeToString(),
             file_chunk
+        ])
+
+    def pushRequestToWorkerRouter(self, worker_id, pb_file, file_id):
+        self.router.send_multipart([
+            bytes(worker_id, 'utf-8'),
+            pb_file.SerializeToString(),
+            file_id
         ])    
 
     def broadcastChunkRequest(self, model):

@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 
+sys.path.insert(1, "../../")
 from erasure_codes import reedsolomon
 from models.file import File
 from repositories import file_repository
@@ -325,6 +326,8 @@ def download_file_erasure(file_id):
     # Parse the storage details JSON string
     storage_details = json.loads(file.storage_details)
 
+    print(f"File requested in storage mode: {file.storage_mode}")
+
     if file.storage_mode == 'erasure_coding_rs':
 
         coded_fragments = storage_details['coded_fragments']
@@ -355,7 +358,41 @@ def download_file_erasure(file_id):
         file_data = reedsolomon.decode_file(symbols)[:file.size]
 
     elif file.storage_mode == 'erasure_coding_rs_random_worker':
-        raise NotImplementedError('Need to implement assigning the decode part to worker')
+
+        coded_fragments = storage_details['coded_fragments']
+        max_erasures = storage_details['max_erasures']
+
+        task = pb_models.delegate_get_erasure_file()
+        task.max_erasures = max_erasures
+        task.type = "WORKER_RETRIEVE_FILE_REQ"
+        task.filename = file.fileName
+
+        node_list = get_node_list(socketUtils.number_of_connected_subs)
+
+        random_node = None
+        if (len(node_list) != 0):
+            random.shuffle(node_list)
+            random_node = node_list[0]
+            node_list.remove(random_node)
+        else:
+            node_list = get_node_list(socketUtils.number_of_connected_subs)
+            random.shuffle(node_list)
+            random_node = node_list[0]
+            node_list.remove(random_node)
+
+        socketUtils.pushRequestToWorkerRouter(random_node, task, str.encode(file_id))
+
+
+        print("Waiting to receive file")
+        result = socketUtils.pull_receive_multipart()
+        # In this case we don't care about the received name, just use the
+        # data from the second frame
+        
+        print("All coded fragments received successfully")
+
+        # Reconstruct the original file data
+        file_data = result 
+
     else:
         raise NotImplementedError('Unsupported storage mode')
 

@@ -24,6 +24,13 @@ message delegate_erasure_file
     int32 max_erasures = 3;
 }
 
+message delegate_get_erasure_file
+{
+    string filename = 1;
+    string type = 2;
+    int32 max_erasures = 3;
+}
+
 
 message broadcast_request_file
 {
