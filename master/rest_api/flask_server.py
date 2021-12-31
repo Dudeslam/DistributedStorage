@@ -358,17 +358,17 @@ def download_file_erasure(file_id):
         file_data = reedsolomon.decode_file(symbols)[:file.size]
 
     elif file.storage_mode == 'erasure_coding_rs_random_worker':
+        start_time = time.time()
 
         coded_fragments = storage_details['coded_fragments']
-        max_erasures = storage_details['max_erasures']
+        max_erasures = storage_details['max_erasures']     
 
-        task = pb_models.delegate_get_erasure_file()
-        task.max_erasures = max_erasures
+        task = pb_models.delegate_file()
         task.type = "WORKER_RETRIEVE_FILE_REQ"
-        task.filename = file.fileName
+        task.filenames.extend(coded_fragments)
 
-        node_list = get_node_list(socketUtils.number_of_connected_subs)
-
+        node_list = get_node_list(socketUtils.number_of_connected_subs)       
+            
         random_node = None
         if (len(node_list) != 0):
             random.shuffle(node_list)
@@ -380,18 +380,28 @@ def download_file_erasure(file_id):
             random_node = node_list[0]
             node_list.remove(random_node)
 
-        socketUtils.pushRequestToWorkerRouter(random_node, task, str.encode(file_id))
+        if random_node == 'node4':
+            print("hey not node 4")
+            random_node = 'node1'
 
+        file_size_string = str(file.size)
+        max_erasures_string = str(max_erasures)
 
-        print("Waiting to receive file")
-        result = socketUtils.pull_receive_multipart()
-        # In this case we don't care about the received name, just use the
-        # data from the second frame
-        
-        print("All coded fragments received successfully")
+        socketUtils.pushRequestToWorkerRouter(random_node, task, str.encode(file_size_string), str.encode(max_erasures_string))
+        end_time = time.time()
+        total_time = end_time - start_time
+        #csv_writer.writerow(['erasure_send_get_to_random_worker', file.size, file.storage_mode, max_erasures, total_time])
+
+        print("Waiting to receive file from random worker")
+        msg = socketUtils.pull_receive_multipart()
+
+        print("Got file from random worker")
+        end_time = time.time()
+        total_time = end_time - start_time
+        #csv_writer.writerow(['finished_read_random_worker', file.size, file.storage_mode, max_erasures, total_time])        
 
         # Reconstruct the original file data
-        file_data = result 
+        file_data = msg[0]
 
     else:
         raise NotImplementedError('Unsupported storage mode')

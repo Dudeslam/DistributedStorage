@@ -221,60 +221,79 @@ while True:
             slave_socket_utils.sender_send_multipart([task.SerializeToString()])
 
         elif temp_model.type == "WORKER_RETRIEVE_FILE_REQ":
-            task = pb_models.delegate_get_erasure_file()
+            task = pb_models.delegate_file()
             task.ParseFromString(msg[0])
-            file_id = msg[1]
 
-            decoded_file_id = file_id.decode()
+            encoded_file_size = msg[1]
+            encoded_max_erasures = msg[2]
 
-            print("Starting to retreive file on random storage node with id: " + decoded_file_id )
-            
-            file = file_repository.get_file(decoded_file_id)
-            # Parse the storage details JSON string
-            storage_details = json.loads(file.storage_details)
 
-            print("Parsed storage details")
-            coded_fragments = storage_details['coded_fragments']
-            max_erasures = storage_details['max_erasures']
+            coded_fragments = task.filenames
+            file_size = int(encoded_file_size.decode())
+            max_erasures = int(encoded_max_erasures.decode())
+
+
+            print("Starting to retreive file on random storage node")            
 
             tasks = reedsolomon.get_file_tasks(
                 coded_fragments,
                 max_erasures,
-                file.size
+                file_size
             )
 
             print("Distributing tasks")
 
-            for task in tasks: ### Hvordan sender du data fragment request ud til de andre nodes?
+            node_list = get_node_list(number_of_nodes)
+            node_list.remove(nodename)
+
+            symbols = []
+            count = 0
+
+            for task in tasks:
                 print(task.filename)
                 print(task.type)
                 pb_model = pb_models.broadcast_request_fragment()
                 pb_model.filename = task.filename
-                pb_model.type = task.type    ### tilføj så de sender til random node
-                slave_socket_utils.getFragmentFromWorker(pb_model)
+                pb_model.type = task.type  
+                
+
+                for node in node_list: 
+                    slave_socket_utils.getFragmentFromWorker(node, pb_model)
+
+                for i in range(1):
+                    try:
+                        with open(data_folder +'/'+ task.filename, "rb") as in_file:
+                            print("Found chunk %s, on master" % task.filename)
+                            symbols.append({
+                                "chunkname": task.filename,
+                                "data": bytearray(in_file.read())
+                            })
+                            count = 1
+
+
+                    except FileNotFoundError:
+                        # This is OK here
+                        break
 
             print("Waiting for fragments")
 
-            symbols = []
-            for _ in range(len(tasks)):
-                
-                print("Waiting for fragments one by one")
-                result = slave_socket_utils.readBroadcastMessage()
+            for _ in range(len(tasks) - count):
+                result = slave_socket_utils.recheiveFragmentFromRandomNodes()
                 # In this case we don't care about the received name, just use the
                 # data from the second frame
-                print("Got chunk named: " + result[0].decode('utf-8'))
+                print("Got chunk named: " + result[1].decode('utf-8'))
                 symbols.append({
-                    "chunkname": result[0].decode('utf-8'),
-                    "data": bytearray(result[1])
+                    "chunkname": result[1].decode('utf-8'),
+                    "data": bytearray(result[2])
                 })
             print("All coded fragments received successfully")
 
             print("Reconstructing the original file data")
             # Reconstruct the original file data
-            file_data = reedsolomon.decode_file(symbols)[:file.size]
+            file_data = reedsolomon.decode_file(symbols)[:file_size]
 
             print("Sending file to master")
-            slave_socket_utils.sendFileToMaster(file_id, file_data)
+            slave_socket_utils.sendFileToMaster(file_data)
 
 
 
@@ -369,33 +388,28 @@ while True:
         model = pb_models.file()
         model.ParseFromString(msg[0])
 
-        print("Data chunk request ogirnaidownaw")
-
         if(model.type == "FRAGMENT_DATA_REQ"):
             task = pb_models.broadcast_request_fragment()
-            task.ParseFromString(msg)
+            task.ParseFromString(msg[0])
 
-            print("Data chunk request: %s" % task.filename)
+            print("Data chunk request from random node: %s" % task.filename)
 
             # Try to load all fragments with this name
             # First frame is the filename
-            frames = [bytes(task.filename, 'utf-8')]
+            #frames = [bytes(task.filename, 'utf-8')]
             # Subsequent frames will contain the chunks' data
-            for i in range(0, MAX_CHUNKS_PER_FILE):
+            for i in range(1):
                 try:
-                    with open(data_folder + '/' + task.filename + "." + str(i), "rb") as in_file:
+                    with open(data_folder +'/'+ task.filename, "rb") as in_file:
                         print("Found chunk %s, sending it back" % task.filename)
+                        slave_socket_utils.sendFragmentToMaster(active_dealer_sock, task.filename, in_file.read())
                         # Add chunk as a new frame
-                        frames.append(in_file.read())
+                        #frames.append(in_file.read())
 
                 except FileNotFoundError:
                     # This is OK here
                     break
-
-            # Only send a result if at least one chunk was found
-            if (len(frames) > 1):
-                slave_socket_utils.sender_send_multipart(frames)
-            
+           
 
         else:
             data = msg[1]

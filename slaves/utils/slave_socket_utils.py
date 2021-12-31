@@ -82,9 +82,18 @@ class SlaveSocketUtils:
 
     def sendAck(self, active_dealer):
         return active_dealer.send_string("")
+    
+    def sendFragmentToMaster(self, active_dealer, filename, filechunk):
+        return active_dealer.send_multipart([
+            bytes(filename, 'utf-8'),
+            filechunk
+        ])
 
     def recheiveAck(self):
         return self.slave_router.recv_string()
+
+    def recheiveFragmentFromRandomNodes(self):
+        return self.slave_router.recv_multipart()
 
     def isBroadcastRequest(self, socket_dict):
         return self.subscriber in socket_dict
@@ -114,9 +123,8 @@ class SlaveSocketUtils:
                     raw_bytes
                 ])
 
-    def sendFileToMaster(self, filename, file_data):
+    def sendFileToMaster(self, file_data):
         self.sender.send_multipart([
-                bytes(filename, 'utf-8'),
                 file_data
             ])
     
@@ -127,10 +135,14 @@ class SlaveSocketUtils:
             filechunk
         ])
 
-    def getFragmentFromWorker(self, model):
+    def getFragmentFromWorker(self, node, model):
         self.slave_router.send_multipart([
-        model.SerializeToString(),
+            bytes(node, 'utf-8'),
+            model.SerializeToString(),
     ])
+
+    def returnFragment(self, active_dealer):
+        return active_dealer.send_string("")
 
     def acknowledgeToMaster(self, model):
         self.sender.send(model.SerializeToString())
