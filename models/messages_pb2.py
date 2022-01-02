@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x0emessages.proto\"&\n\x04\x66ile\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"#\n\x0fgetdata_request\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\"0\n\rdelegate_file\x12\x11\n\tfilenames\x18\x01 \x03(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"M\n\x15\x64\x65legate_erasure_file\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x14\n\x0cmax_erasures\x18\x03 \x01(\x05\"9\n\x16\x62roadcast_request_file\x12\x11\n\tfilenames\x18\x01 \x03(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"Y\n\x17\x62roadcast_response_node\x12\x0c\n\x04node\x18\x01 \x01(\t\x12\x11\n\tfilenames\x18\x02 \x03(\t\x12\x0f\n\x07hasFile\x18\x03 \x01(\x08\x12\x0c\n\x04type\x18\x04 \x01(\t\"L\n\x1a\x62roadcast_request_specefic\x12\r\n\x05nodes\x18\x01 \x03(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x11\n\tfilenames\x18\x04 \x03(\t\"<\n\x1a\x62roadcast_request_fragment\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"/\n\x1aworker_store_file_response\x12\x11\n\tfragments\x18\x01 \x03(\tb\x06proto3'
+  serialized_pb=b'\n\x0emessages.proto\"&\n\x04\x66ile\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"#\n\x0fgetdata_request\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\"0\n\rdelegate_file\x12\x11\n\tfilenames\x18\x01 \x03(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"M\n\x15\x64\x65legate_erasure_file\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x14\n\x0cmax_erasures\x18\x03 \x01(\x05\"Q\n\x19\x64\x65legate_get_erasure_file\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x14\n\x0cmax_erasures\x18\x03 \x01(\x05\"9\n\x16\x62roadcast_request_file\x12\x11\n\tfilenames\x18\x01 \x03(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"Y\n\x17\x62roadcast_response_node\x12\x0c\n\x04node\x18\x01 \x01(\t\x12\x11\n\tfilenames\x18\x02 \x03(\t\x12\x0f\n\x07hasFile\x18\x03 \x01(\x08\x12\x0c\n\x04type\x18\x04 \x01(\t\"L\n\x1a\x62roadcast_request_specefic\x12\r\n\x05nodes\x18\x01 \x03(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\x12\x11\n\tfilenames\x18\x04 \x03(\t\"<\n\x1a\x62roadcast_request_fragment\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12\x0c\n\x04type\x18\x02 \x01(\t\"/\n\x1aworker_store_file_response\x12\x11\n\tfragments\x18\x01 \x03(\tb\x06proto3'
 )
 
 
@@ -181,6 +181,52 @@ _DELEGATE_ERASURE_FILE = _descriptor.Descriptor(
 )
 
 
+_DELEGATE_GET_ERASURE_FILE = _descriptor.Descriptor(
+  name='delegate_get_erasure_file',
+  full_name='delegate_get_erasure_file',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  create_key=_descriptor._internal_create_key,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='filename', full_name='delegate_get_erasure_file.filename', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='type', full_name='delegate_get_erasure_file.type', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='max_erasures', full_name='delegate_get_erasure_file.max_erasures', index=2,
+      number=3, type=5, cpp_type=1, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=224,
+  serialized_end=305,
+)
+
+
 _BROADCAST_REQUEST_FILE = _descriptor.Descriptor(
   name='broadcast_request_file',
   full_name='broadcast_request_file',
@@ -215,8 +261,8 @@ _BROADCAST_REQUEST_FILE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=224,
-  serialized_end=281,
+  serialized_start=307,
+  serialized_end=364,
 )
 
 
@@ -268,8 +314,8 @@ _BROADCAST_RESPONSE_NODE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=283,
-  serialized_end=372,
+  serialized_start=366,
+  serialized_end=455,
 )
 
 
@@ -314,8 +360,8 @@ _BROADCAST_REQUEST_SPECEFIC = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=374,
-  serialized_end=450,
+  serialized_start=457,
+  serialized_end=533,
 )
 
 
@@ -353,8 +399,8 @@ _BROADCAST_REQUEST_FRAGMENT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=452,
-  serialized_end=512,
+  serialized_start=535,
+  serialized_end=595,
 )
 
 
@@ -385,14 +431,15 @@ _WORKER_STORE_FILE_RESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=514,
-  serialized_end=561,
+  serialized_start=597,
+  serialized_end=644,
 )
 
 DESCRIPTOR.message_types_by_name['file'] = _FILE
 DESCRIPTOR.message_types_by_name['getdata_request'] = _GETDATA_REQUEST
 DESCRIPTOR.message_types_by_name['delegate_file'] = _DELEGATE_FILE
 DESCRIPTOR.message_types_by_name['delegate_erasure_file'] = _DELEGATE_ERASURE_FILE
+DESCRIPTOR.message_types_by_name['delegate_get_erasure_file'] = _DELEGATE_GET_ERASURE_FILE
 DESCRIPTOR.message_types_by_name['broadcast_request_file'] = _BROADCAST_REQUEST_FILE
 DESCRIPTOR.message_types_by_name['broadcast_response_node'] = _BROADCAST_RESPONSE_NODE
 DESCRIPTOR.message_types_by_name['broadcast_request_specefic'] = _BROADCAST_REQUEST_SPECEFIC
@@ -427,6 +474,13 @@ delegate_erasure_file = _reflection.GeneratedProtocolMessageType('delegate_erasu
   # @@protoc_insertion_point(class_scope:delegate_erasure_file)
   })
 _sym_db.RegisterMessage(delegate_erasure_file)
+
+delegate_get_erasure_file = _reflection.GeneratedProtocolMessageType('delegate_get_erasure_file', (_message.Message,), {
+  'DESCRIPTOR' : _DELEGATE_GET_ERASURE_FILE,
+  '__module__' : 'messages_pb2'
+  # @@protoc_insertion_point(class_scope:delegate_get_erasure_file)
+  })
+_sym_db.RegisterMessage(delegate_get_erasure_file)
 
 broadcast_request_file = _reflection.GeneratedProtocolMessageType('broadcast_request_file', (_message.Message,), {
   'DESCRIPTOR' : _BROADCAST_REQUEST_FILE,

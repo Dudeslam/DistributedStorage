@@ -3,6 +3,7 @@ import json
 import logging
 import sys
 
+sys.path.insert(1, "../../")
 from erasure_codes import reedsolomon
 from models.file import File
 from repositories import file_repository
@@ -325,7 +326,10 @@ def download_file_erasure(file_id):
     # Parse the storage details JSON string
     storage_details = json.loads(file.storage_details)
 
+    print(f"File requested in storage mode: {file.storage_mode}")
+
     if file.storage_mode == 'erasure_coding_rs':
+        start_time = time.time()
 
         coded_fragments = storage_details['coded_fragments']
         max_erasures = storage_details['max_erasures']
@@ -338,6 +342,10 @@ def download_file_erasure(file_id):
 
         for task in tasks:
             socketUtils.broadcastChunkRequest(task)
+        
+        end_time = time.time()
+        total_time = end_time - start_time
+        csv_writer.writerow(['erasure_get', file.size, file.storage_mode, max_erasures, total_time])
 
         # Receive all chunks and insert them into the symbols array
         symbols = []
@@ -354,8 +362,56 @@ def download_file_erasure(file_id):
         # Reconstruct the original file data
         file_data = reedsolomon.decode_file(symbols)[:file.size]
 
+        end_time = time.time()
+        total_time = end_time - start_time
+        csv_writer.writerow(['erasure_get_response', file.size, file.storage_mode, max_erasures, total_time])  
+
     elif file.storage_mode == 'erasure_coding_rs_random_worker':
-        raise NotImplementedError('Need to implement assigning the decode part to worker')
+        start_time = time.time()
+
+        coded_fragments = storage_details['coded_fragments']
+        max_erasures = storage_details['max_erasures']     
+
+        task = pb_models.delegate_file()
+        task.type = "WORKER_RETRIEVE_FILE_REQ"
+        task.filenames.extend(coded_fragments)
+
+        node_list = get_node_list(socketUtils.number_of_connected_subs)       
+            
+        random_node = None
+        if (len(node_list) != 0):
+            random.shuffle(node_list)
+            random_node = node_list[0]
+            node_list.remove(random_node)
+        else:
+            node_list = get_node_list(socketUtils.number_of_connected_subs)
+            random.shuffle(node_list)
+            random_node = node_list[0]
+            node_list.remove(random_node)
+
+        if random_node == 'node4':
+            print("hey not node 4")
+            random_node = 'node1'
+
+        file_size_string = str(file.size)
+        max_erasures_string = str(max_erasures)
+
+        socketUtils.pushRequestToWorkerRouter(random_node, task, str.encode(file_size_string), str.encode(max_erasures_string))
+        end_time = time.time()
+        total_time = end_time - start_time
+        csv_writer.writerow(['erasure_get_random_worker', file.size, file.storage_mode, max_erasures, total_time])
+
+        print("Waiting to receive file from random worker")
+        msg = socketUtils.pull_receive_multipart()
+
+        print("Got file from random worker")
+        end_time = time.time()
+        total_time = end_time - start_time
+        csv_writer.writerow(['erasure_get_random_worker_response', file.size, file.storage_mode, max_erasures, total_time])        
+
+        # Reconstruct the original file data
+        file_data = msg[0]
+
     else:
         raise NotImplementedError('Unsupported storage mode')
 

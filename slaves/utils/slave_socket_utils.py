@@ -82,9 +82,18 @@ class SlaveSocketUtils:
 
     def sendAck(self, active_dealer):
         return active_dealer.send_string("")
+    
+    def sendFragmentToMaster(self, active_dealer, filename, filechunk):
+        return active_dealer.send_multipart([
+            bytes(filename, 'utf-8'),
+            filechunk
+        ])
 
     def recheiveAck(self):
         return self.slave_router.recv_string()
+
+    def recheiveFragmentFromRandomNodes(self):
+        return self.slave_router.recv_multipart()
 
     def isBroadcastRequest(self, socket_dict):
         return self.subscriber in socket_dict
@@ -100,7 +109,7 @@ class SlaveSocketUtils:
 
     def readSlaveRequest(self, active_socket):
         return active_socket.recv_multipart()
-
+    
     def readStoreRequest(self):
         return self.receiver.recv_multipart()
 
@@ -113,6 +122,11 @@ class SlaveSocketUtils:
                     bytes(filename, 'utf-8'),
                     raw_bytes
                 ])
+
+    def sendFileToMaster(self, file_data):
+        self.sender.send_multipart([
+                file_data
+            ])
     
     def sendChunkToWorker(self, node, model, filechunk):
         self.slave_router.send_multipart([
@@ -120,6 +134,15 @@ class SlaveSocketUtils:
             model.SerializeToString(),
             filechunk
         ])
+
+    def getFragmentFromWorker(self, node, model):
+        self.slave_router.send_multipart([
+            bytes(node, 'utf-8'),
+            model.SerializeToString(),
+    ])
+
+    def returnFragment(self, active_dealer):
+        return active_dealer.send_string("")
 
     def acknowledgeToMaster(self, model):
         self.sender.send(model.SerializeToString())
@@ -129,6 +152,13 @@ class SlaveSocketUtils:
 
     def sender_send_multipart(self, multipart):
         self.sender.send_multipart(multipart)
+
+    def sender_send_retrieve_file_tasks(self, multipart):
+        self.sender.send(multipart.SerializeToString())   
+
+    def slave_send_retrieve_file_tasks(self, multipart):
+        self.slave_router.send(multipart.SerializeToString())   
+
         
     
     

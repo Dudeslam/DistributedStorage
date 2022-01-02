@@ -1,7 +1,9 @@
 import string
 import sys
-sys.path.insert(1,"../")
-from erasure_codes.reedsolomon import get_store_file_tasks
+import json
+sys.path.insert(1, "../")
+from erasure_codes import reedsolomon
+from repositories import file_repository
 import os
 from utils.slave_socket_utils import SlaveSocketUtils
 import models.messages_pb2 as pb_models # Generated Protobuf messages
@@ -173,7 +175,7 @@ while True:
             data = msg[1]
 
             # Store the file contents with Reed Solomon erasure coding
-            tasks, fragments = get_store_file_tasks(bytearray(data), task.max_erasures)
+            tasks, fragments = reedsolomon.get_store_file_tasks(bytearray(data), task.max_erasures)
 
             fragment_names = list(map(lambda x: x.filename, tasks))
             # Store a fragment on current node
@@ -218,6 +220,83 @@ while True:
             task.fragments[:] = fragment_names
             slave_socket_utils.sender_send_multipart([task.SerializeToString()])
 
+        elif temp_model.type == "WORKER_RETRIEVE_FILE_REQ":
+            task = pb_models.delegate_file()
+            task.ParseFromString(msg[0])
+
+            encoded_file_size = msg[1]
+            encoded_max_erasures = msg[2]
+
+
+            coded_fragments = task.filenames
+            file_size = int(encoded_file_size.decode())
+            max_erasures = int(encoded_max_erasures.decode())
+
+
+            print("Starting to retreive file on random storage node")            
+
+            tasks = reedsolomon.get_file_tasks(
+                coded_fragments,
+                max_erasures,
+                file_size
+            )
+
+            print("Distributing tasks")
+
+            node_list = get_node_list(number_of_nodes)
+            node_list.remove(nodename)
+
+            symbols = []
+            count = 0
+
+            for task in tasks:
+                print(task.filename)
+                print(task.type)
+                pb_model = pb_models.broadcast_request_fragment()
+                pb_model.filename = task.filename
+                pb_model.type = task.type  
+                
+
+                for node in node_list: 
+                    slave_socket_utils.getFragmentFromWorker(node, pb_model)
+
+                for i in range(1):
+                    try:
+                        with open(data_folder +'/'+ task.filename, "rb") as in_file:
+                            print("Found chunk %s, on master" % task.filename)
+                            symbols.append({
+                                "chunkname": task.filename,
+                                "data": bytearray(in_file.read())
+                            })
+                            count = 1
+
+
+                    except FileNotFoundError:
+                        # This is OK here
+                        break
+
+            print("Waiting for fragments")
+
+            for _ in range(len(tasks) - count):
+                result = slave_socket_utils.recheiveFragmentFromRandomNodes()
+                # In this case we don't care about the received name, just use the
+                # data from the second frame
+                print("Got chunk named: " + result[1].decode('utf-8'))
+                symbols.append({
+                    "chunkname": result[1].decode('utf-8'),
+                    "data": bytearray(result[2])
+                })
+            print("All coded fragments received successfully")
+
+            print("Reconstructing the original file data")
+            # Reconstruct the original file data
+            file_data = reedsolomon.decode_file(symbols)[:file_size]
+
+            print("Sending file to master")
+            slave_socket_utils.sendFileToMaster(file_data)
+
+
+
     if slave_socket_utils.isStoreRequest(socks):
         print("StoreRequest rechieved")
         # Incoming message on the 'receiver' socket where we get tasks to store a chunk
@@ -255,7 +334,7 @@ while True:
             data = msg[1]
 
             # Store the file contents with Reed Solomon erasure coding
-            tasks, fragments = get_store_file_tasks(bytearray(data), task.max_erasures)
+            tasks, fragments = reedsolomon.get_store_file_tasks(bytearray(data), task.max_erasures)
 
             fragment_names = list(map(lambda x: x.filename, tasks))
             # Store a fragment on current node
@@ -301,7 +380,7 @@ while True:
             slave_socket_utils.sender_send_multipart([task.SerializeToString()])
 
             raise NotImplementedError
-
+  
     if slave_socket_utils.isSlaveRequest(socks):
         active_dealer_sock = slave_socket_utils.get_active_slave_dealer(socks)
 
@@ -309,12 +388,36 @@ while True:
         model = pb_models.file()
         model.ParseFromString(msg[0])
 
-        data = msg[1]
-        print(f"Chunk with name {model.filename} rechieved")
-        # Store the chunk with the given filename
-        chunk_local_path = data_folder+'/'+model.filename
-        write_file(data, chunk_local_path)
-        slave_socket_utils.sendAck(active_dealer_sock)
+        if(model.type == "FRAGMENT_DATA_REQ"):
+            task = pb_models.broadcast_request_fragment()
+            task.ParseFromString(msg[0])
+
+            print("Data chunk request from random node: %s" % task.filename)
+
+            # Try to load all fragments with this name
+            # First frame is the filename
+            #frames = [bytes(task.filename, 'utf-8')]
+            # Subsequent frames will contain the chunks' data
+            for i in range(1):
+                try:
+                    with open(data_folder +'/'+ task.filename, "rb") as in_file:
+                        print("Found chunk %s, sending it back" % task.filename)
+                        slave_socket_utils.sendFragmentToMaster(active_dealer_sock, task.filename, in_file.read())
+                        # Add chunk as a new frame
+                        #frames.append(in_file.read())
+
+                except FileNotFoundError:
+                    # This is OK here
+                    break
+           
+
+        else:
+            data = msg[1]
+            print(f"Chunk with name {model.filename} rechieved")
+            # Store the chunk with the given filename
+            chunk_local_path = data_folder+'/'+model.filename
+            write_file(data, chunk_local_path)
+            slave_socket_utils.sendAck(active_dealer_sock)
 
     if slave_socket_utils.isBroadcastRequest(socks):
         print("Broadcast rechieved")

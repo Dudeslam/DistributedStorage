@@ -146,7 +146,42 @@ fig.show()
 #endregion
 
 #region decoding
-# TODO
+col = 'time'
+
+filtered_df_stratA = df[(df.event == 'erasure_get_response') & (df.storage_mode == 'erasure_coding_rs')]
+filtered_df_stratA = filtered_df_stratA.sort_values(by=['time'])
+
+filtered_df_stratB = df[(df.event == 'erasure_get_random_worker_response') & (df.storage_mode == 'erasure_coding_rs_random_worker')]
+filtered_df_stratB = filtered_df_stratB.sort_values(by=['time'])
+
+means_stratA_l1 = retrieveMeans(filtered_df_stratA, col, 'erasure_coding_rs', 1, sizes_int)
+means_stratA_l2 = retrieveMeans(filtered_df_stratA, col, 'erasure_coding_rs', 2, sizes_int)
+means_stratB_l1 = retrieveMeans(filtered_df_stratB, col, 'erasure_coding_rs_random_worker', 1, sizes_int)
+means_stratB_l2 = retrieveMeans(filtered_df_stratB, col, 'erasure_coding_rs_random_worker', 2, sizes_int)
+
+traces = []
+
+trace0 = go.Histogram(histfunc="sum", x=sizes, y=means_stratA_l1, name=plot_names[0], nbinsx=5)
+trace1 = go.Histogram(histfunc="sum", x=sizes, y=means_stratA_l2, name=plot_names[1], nbinsx=5)
+trace2 = go.Histogram(histfunc="sum", x=sizes, y=means_stratB_l1, name=plot_names[2], nbinsx=5)
+trace3 = go.Histogram(histfunc="sum", x=sizes, y=means_stratB_l2, name=plot_names[3], nbinsx=5)
+
+fig = make_subplots(
+    rows=1,
+    cols=2,
+    subplot_titles=["Strategy A vs Strategy B with l = 1",
+                    "Strategy A vs Strategy B with l = 2"],
+    x_title='File Size',
+    y_title='Seconds')
+
+fig.append_trace(trace0, 1, 1)
+fig.append_trace(trace2, 1, 1)
+fig.append_trace(trace1, 1, 2)
+fig.append_trace(trace3, 1, 2)
+
+fig.update_layout(height=600, width=1600, title_text="Decoding comparison", title_x=0.5)
+fig.show()
+
 
 #endregion
 
