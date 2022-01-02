@@ -494,7 +494,11 @@ def add_files_multipart():
             random_node = node_list[0]
             node_list.remove(random_node)
 
-        socketUtils.pushChunkToWorkerRouter('node1', task, data)
+        if random_node == 'node4':
+            print("hey not node 4")
+            random_node = 'node1'
+
+        socketUtils.pushChunkToWorkerRouter(random_node, task, data)
 
         end_time = time.time()
         total_time = end_time - start_time
