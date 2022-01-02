@@ -278,6 +278,14 @@ while True:
 
             for _ in range(len(tasks) - count):
                 result = slave_socket_utils.recheiveFragmentFromRandomNodes()
+
+                isItWrongResult = result[0] == b'' or len(result) > 1 and result[1] == b''
+                while isItWrongResult:
+                    result = slave_socket_utils.recheiveFragmentFromRandomNodes()
+                    isItWrongResult = result[0] == b'' or len(result) > 1 and result[1] == b''
+                    if not isItWrongResult:
+                        break
+
                 # In this case we don't care about the received name, just use the
                 # data from the second frame
                 print("Got chunk named: " + result[1].decode('utf-8'))
@@ -386,7 +394,7 @@ while True:
         msg = slave_socket_utils.readSlaveRequest(active_dealer_sock)
         model = pb_models.file()
         model.ParseFromString(msg[0])
-
+        print(model)
         if(model.type == "FRAGMENT_DATA_REQ"):
             task = pb_models.broadcast_request_fragment()
             task.ParseFromString(msg[0])
