@@ -3,7 +3,6 @@ import sys
 import json
 sys.path.insert(1, "../")
 from erasure_codes import reedsolomon
-from repositories import file_repository
 import os
 from utils.slave_socket_utils import SlaveSocketUtils
 import models.messages_pb2 as pb_models # Generated Protobuf messages
