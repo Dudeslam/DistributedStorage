@@ -329,6 +329,7 @@ def download_file_erasure(file_id):
     print(f"File requested in storage mode: {file.storage_mode}")
 
     if file.storage_mode == 'erasure_coding_rs':
+        start_time = time.time()
 
         coded_fragments = storage_details['coded_fragments']
         max_erasures = storage_details['max_erasures']
@@ -341,6 +342,10 @@ def download_file_erasure(file_id):
 
         for task in tasks:
             socketUtils.broadcastChunkRequest(task)
+        
+        end_time = time.time()
+        total_time = end_time - start_time
+        csv_writer.writerow(['erasure_get', file.size, file.storage_mode, max_erasures, total_time])
 
         # Receive all chunks and insert them into the symbols array
         symbols = []
@@ -356,6 +361,10 @@ def download_file_erasure(file_id):
 
         # Reconstruct the original file data
         file_data = reedsolomon.decode_file(symbols)[:file.size]
+
+        end_time = time.time()
+        total_time = end_time - start_time
+        csv_writer.writerow(['erasure_get_response', file.size, file.storage_mode, max_erasures, total_time])  
 
     elif file.storage_mode == 'erasure_coding_rs_random_worker':
         start_time = time.time()
@@ -390,7 +399,7 @@ def download_file_erasure(file_id):
         socketUtils.pushRequestToWorkerRouter(random_node, task, str.encode(file_size_string), str.encode(max_erasures_string))
         end_time = time.time()
         total_time = end_time - start_time
-        #csv_writer.writerow(['erasure_send_get_to_random_worker', file.size, file.storage_mode, max_erasures, total_time])
+        csv_writer.writerow(['erasure_get_random_worker', file.size, file.storage_mode, max_erasures, total_time])
 
         print("Waiting to receive file from random worker")
         msg = socketUtils.pull_receive_multipart()
@@ -398,7 +407,7 @@ def download_file_erasure(file_id):
         print("Got file from random worker")
         end_time = time.time()
         total_time = end_time - start_time
-        #csv_writer.writerow(['finished_read_random_worker', file.size, file.storage_mode, max_erasures, total_time])        
+        csv_writer.writerow(['erasure_get_random_worker_response', file.size, file.storage_mode, max_erasures, total_time])        
 
         # Reconstruct the original file data
         file_data = msg[0]
