@@ -4,9 +4,9 @@ import time
 
 import requests
 
-base_url = 'http://localhost:9000'
-iterations = 100
-files = ['10KB', '100KB', '1MB', '10MB', '100MB']
+base_url = 'http://62.107.0.222:9000'
+iterations = 5
+files = ['100MB'] # ['10KB', '100KB', '1MB', '10MB', '100MB']
 result_file = "results_erasure_client.csv"
 fields = ['id',
           'file_size',
@@ -23,9 +23,9 @@ with open(f'./logs/{result_file}', 'w') as csvfile:
 
     # Write first row of csv
     csv_writer.writerow(fields)
-
-    for storage_mode in ['erasure_coding_rs', 'erasure_coding_rs_random_worker']:
-        for max_erasure in [1, 2]:
+    i = 0
+    for storage_mode in ['erasure_coding_rs_random_worker', 'erasure_coding_rs']:
+        for max_erasure in [2, 1]:
             # For each file size (10kB, 100kB, 1MB, 10MB and 100MB)
             for file in files:
                 with open(f'./testfiles/{file}.txt', 'r') as f:
@@ -45,11 +45,12 @@ with open(f'./logs/{result_file}', 'w') as csvfile:
                         id = json.loads(write_response.text)['id']
 
                         # Download file
+                        time.sleep(30)
                         start_time = time.time()
                         read_response = requests.get(f'{base_url}/exercise3/files/{id}')
                         end_time = time.time()
                         read_total_time = end_time - start_time
-
+                        print(i)
                         # Save entry in CSV
                         csv_writer.writerow([id,
                                              file,

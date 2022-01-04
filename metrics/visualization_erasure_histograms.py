@@ -22,7 +22,7 @@ def add_trace(fig, df, column, file_size, storage_mode, max_erasures, row, col, 
     return fig
 
 # END TO END
-df = pd.read_csv('./logs/results_erasure_client.csv')
+df = pd.read_csv('logs/results_erasure_client_missing.csv')
 
 #region write_time
 df = df.sort_values(by=['write_time'])
@@ -103,7 +103,7 @@ fig.show()
 #endregion
 
 # Lead Node internal timings
-df = pd.read_csv('./logs/erasure_server_results.csv')
+df = pd.read_csv('logs/erasure_server_results_missing.csv')
 #region encoding
 
 # filter for wanted rows
